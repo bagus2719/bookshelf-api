@@ -4,7 +4,6 @@ const { nanoid } = require("nanoid");
 
 // Handler untuk menambahkan buku baru
 const addBookHandler = (request, h) => {
-  // Mengambil data dari request payload
   const {
     name,
     year,
@@ -31,17 +30,16 @@ const addBookHandler = (request, h) => {
     return h
       .response({
         status: "fail",
-        message:
-          "Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount",
+        message: "Gagal menambahkan buku. readPage tidak boleh lebih besar dari pageCount",
       })
       .code(400);
   }
 
   // Membuat data buku baru dengan properti tambahan yang dihasilkan di server
-  const id = nanoid(16); // ID unik menggunakan nanoid
-  const insertedAt = new Date().toISOString(); // Tanggal saat buku ditambahkan
-  const updatedAt = insertedAt; // Tanggal saat buku terakhir diperbarui
-  const finished = pageCount === readPage; // Status 'finished' tergantung pada apakah semua halaman sudah dibaca
+  const id = nanoid(16);
+  const insertedAt = new Date().toISOString();
+  const updatedAt = insertedAt;
+  const finished = pageCount === readPage;
 
   // Membuat objek buku baru dengan semua data yang diperlukan
   const newBook = {
@@ -76,7 +74,6 @@ const addBookHandler = (request, h) => {
 
 // Handler untuk mendapatkan seluruh buku yang difilter berdasarkan query parameters
 const getAllBooksHandler = (request, h) => {
-  // Mengambil nilai query 'name', 'reading', dan 'finished' dari request
   const { name, reading, finished } = request.query;
 
   // Mulai dengan array 'books' yang berisi semua buku
@@ -92,14 +89,14 @@ const getAllBooksHandler = (request, h) => {
   // Filter berdasarkan status 'reading' jika query 'reading' ada
   if (reading !== undefined) {
     filteredBooks = filteredBooks.filter(
-      (book) => book.reading === (reading === '1') // True jika '1', false jika '0'
+      (book) => book.reading === (reading === '1')
     );
   }
 
   // Filter berdasarkan status 'finished' jika query 'finished' ada
   if (finished !== undefined) {
     filteredBooks = filteredBooks.filter(
-      (book) => book.finished === (finished === '1') // True jika '1', false jika '0'
+      (book) => book.finished === (finished === '1')
     );
   }
 
@@ -118,7 +115,6 @@ const getAllBooksHandler = (request, h) => {
 
 // Handler untuk mendapatkan detail buku berdasarkan 'bookId' dari path parameter
 const getBookByIdHandler = (request, h) => {
-  // Mengambil 'bookId' dari parameter request
   const { bookId } = request.params;
 
   // Mencari buku berdasarkan 'bookId'
@@ -143,5 +139,112 @@ const getBookByIdHandler = (request, h) => {
   };
 };
 
+// Handler untuk memperbarui data buku berdasarkan 'bookId'
+const updateBookByIdHandler = (request, h) => {
+  const { bookId } = request.params;
+  const {
+    name,
+    year,
+    author,
+    summary,
+    publisher,
+    pageCount,
+    readPage,
+    reading,
+  } = request.payload;
+
+  // Validasi: Memastikan 'name' ada
+  if (!name) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. Mohon isi nama buku',
+      })
+      .code(400);
+  }
+
+  // Validasi: Memastikan 'readPage' tidak lebih besar dari 'pageCount'
+  if (readPage > pageCount) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. readPage tidak boleh lebih besar dari pageCount',
+      })
+      .code(400);
+  }
+
+  // Mencari indeks buku berdasarkan bookId
+  const index = books.findIndex((book) => book.id === bookId);
+
+  // Jika buku dengan bookId tidak ditemukan
+  if (index === -1) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Gagal memperbarui buku. Id tidak ditemukan',
+      })
+      .code(404);
+  }
+
+  // Memperbarui data buku
+  const updatedAt = new Date().toISOString();
+  books[index] = {
+    ...books[index],
+    name,
+    year,
+    author,
+    summary,
+    publisher,
+    pageCount,
+    readPage,
+    reading,
+    finished: pageCount === readPage,
+    updatedAt,
+  };
+
+  // Mengembalikan respons sukses
+  return h
+    .response({
+      status: 'success',
+      message: 'Buku berhasil diperbarui',
+    })
+    .code(200);
+};
+
+// Handler untuk menghapus buku berdasarkan 'bookId'
+const deleteBookByIdHandler = (request, h) => {
+  const { bookId } = request.params;
+
+  // Mencari indeks buku berdasarkan bookId
+  const index = books.findIndex((book) => book.id === bookId);
+
+  // Jika buku dengan bookId tidak ditemukan
+  if (index === -1) {
+    return h
+      .response({
+        status: 'fail',
+        message: 'Buku gagal dihapus. Id tidak ditemukan',
+      })
+      .code(404);
+  }
+
+  // Menghapus buku dari array books
+  books.splice(index, 1);
+
+  // Mengembalikan respons sukses
+  return h
+    .response({
+      status: 'success',
+      message: 'Buku berhasil dihapus',
+    })
+    .code(200);
+};
+
 // Mengekspor semua handler dalam satu objek agar dapat diakses di tempat lain
-module.exports = { addBookHandler, getAllBooksHandler, getBookByIdHandler };
+module.exports = {
+  addBookHandler,
+  getAllBooksHandler,
+  getBookByIdHandler,
+  updateBookByIdHandler,
+  deleteBookByIdHandler,
+};
